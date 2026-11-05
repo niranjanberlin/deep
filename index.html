@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEAD-END FOCUS — Timer and Tracker</title>
+<style>
+:root{--gold:#ffe33e;--teal:#59eced;--bg:#07151a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#fff;background:linear-gradient(#03151acc,#03151aee),url('poster.jpg') center/cover fixed}
+main{max-width:900px;margin:auto;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:25px}
+.logo{color:var(--gold);font-size:clamp(22px,4vw,36px);font-weight:900;letter-spacing:-1px}
+#clock{text-align:right;font-size:12px;color:#d5dddd}
+h1{font-size:clamp(32px,7vw,65px);color:var(--gold);margin:8px 0;line-height:.98;letter-spacing:-2px}
+p{line-height:1.5;color:#b6cbd0}
+.panel{background:#061820dc;border:1px solid #31535b;border-radius:13px;padding:20px;margin:18px 0;box-shadow:0 12px 40px #0005}
+.kicker{letter-spacing:2px;color:var(--teal);font-size:11px;font-weight:900}
+.timer{text-align:center;font-size:clamp(60px,15vw,110px);font-weight:900;font-variant-numeric:tabular-nums;margin:14px 0}
+.progress{height:8px;background:#26414a;border-radius:10px;overflow:hidden;margin:14px 0}
+.progress>div{width:0;height:100%;background:var(--gold);transition:width .2s}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}
+button{font:700 14px Arial;cursor:pointer;background:#16434b;color:#fff;border:1px solid #43717b;border-radius:7px;padding:12px 15px}
+button:hover{border-color:var(--gold)}button.primary{background:var(--gold);color:#121c20;border-color:var(--gold)}
+.flex{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stats{display:flex;justify-content:space-between;gap:10px;color:#c7e0e2;font-size:13px;flex-wrap:wrap}
+.stats strong{color:var(--gold);font-size:20px}
+.triangles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.triangle-card{background:#071e27;border:1px solid #31535b;padding:10px;text-align:center;border-radius:8px}
+.triangle-card svg{width:100%;height:90px}
+.triangle-card line{stroke:#415a60;stroke-width:9;stroke-linecap:round}
+.triangle-card line.on{stroke:var(--gold)}
+.triangle-card small{color:#afcbd0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}
+.box{position:relative;aspect-ratio:1.1;background:#09242ecf;border:2px solid #345b67;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-direction:column;min-width:0}
+.box span{font-size:clamp(18px,3vw,28px);font-weight:900}.box small{font-size:11px;color:#a9c6c9;margin-top:6px}
+.box.done{border-color:var(--gold);background:#1d342a}.box.done span,.box.done small{opacity:.22}
+.box.done:before,.box.done:after{content:'';position:absolute;top:50%;left:50%;width:115%;height:5px;background:var(--gold);border-radius:5px}
+.box.done:before{transform:translate(-50%,-50%) rotate(45deg)}.box.done:after{transform:translate(-50%,-50%) rotate(-45deg)}
+label{font-size:12px;color:#bed5d8}input[type=date]{background:#102d35;color:white;padding:10px;border:1px solid #42616c;border-radius:5px}
+footer{text-align:center;font-size:12px;color:#b7cad0;margin:28px}
+@media(max-width:600px){main{padding:12px}.panel{padding:12px}.triangles{gap:5px}.triangle-card{padding:6px}.triangle-card svg{height:64px}.grid{gap:6px}.box{aspect-ratio:.9}.box small{font-size:9px}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="logo">DEAD-END FOCUS</div><div id="clock"></div></header>
+<h1>ONE BLOCK<br>AT A TIME.</h1>
+<p>5-minute timer → 3 lines = 1 triangle (15 min) → 2 triangles = 1 crossed box (30 min).</p>
+<section class="panel">
+ <div class="flex"><b class="kicker" id="status">READY TO FOCUS</b><span id="session">Session 1 / 54</span></div>
+ <div class="timer" id="timer">05:00</div>
+ <div class="progress"><div id="timerBar"></div></div>
+ <div class="actions"><button class="primary" id="play">▶ Start</button><button id="add">+ 5 min completed</button><button id="resetTimer">↺ Reset session</button></div>
+ <div class="stats"><div>Completed <strong id="mins">0</strong> min</div><div>Triangles <strong id="triDone">0</strong></div><div>Boxes <strong id="boxesDone">0 / 9</strong></div></div>
+</section>
+<section class="panel"><div class="kicker">ONE LINE PER FIVE MINUTES</div><h2>Your 4 triangles</h2><p>These show your current 60-minute cycle and repeat automatically.</p><div class="triangles" id="triangles"></div></section>
+<section class="panel">
+ <div class="flex"><div><div class="kicker">NINE BOX CHALLENGE</div><h2>3 × 3 Focus Tracker</h2></div><label>Date <input id="date" type="date"></label></div>
+ <p>No fixed starting time. Each X means 30 minutes finished. The timer and boxes are linked.</p>
+ <div class="progress"><div id="dayBar"></div></div>
+ <div class="grid" id="grid"></div>
+ <div class="flex"><b id="goal">0 / 270 minutes</b><b>GOAL: 4H 30M</b></div>
+ <div class="actions"><button class="primary" id="image">↓ Download image</button><button id="backup">↓ Backup</button><button id="restore">↑ Restore</button><button id="resetDay">↺ Reset day</button></div>
+ <input type="file" id="backupFile" accept="application/json" hidden>
+</section>
+<footer>DEAD-END FOCUS • Every five minutes counts.</footer>
+</main>
+<script>
+const TOTAL=54,DURATION=300,KEY='dead_end_focus_linked_v3';
+const $=id=>document.getElementById(id);
+const today=()=>{let d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+let data={days:{}},date=today(),secs=DURATION,running=false,deadline=0;
+try{data=JSON.parse(localStorage.getItem(KEY))||data}catch(e){};
+if(!data.days)data={days:{}};
+$('date').value=date;
+const day=()=>data.days[date]||(data.days[date]={steps:0});
+const steps=()=>Math.min(TOTAL,Math.max(0,day().steps|0));
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+function pause(){running=false;$('play').textContent='▶ Start';save()}
+function updateClock(){let n=new Date();$('clock').innerHTML=n.toLocaleTimeString()+'<br>'+n.toLocaleDateString()}
+function draw(){
+ const s=steps(),cycles=s%12===0&&s>0?12:s%12;
+ $('timer').textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+ $('timerBar').style.width=(100*(DURATION-secs)/DURATION)+'%';
+ $('dayBar').style.width=(100*s/TOTAL)+'%';
+ $('mins').textContent=s*5;$('triDone').textContent=Math.floor(s/3);$('boxesDone').textContent=Math.floor(s/6)+' / 9';
+ $('goal').textContent=(s*5)+' / 270 minutes';$('session').textContent=s===TOTAL?'Goal complete':'Session '+(s+1)+' / 54';
+ $('status').textContent=s===TOTAL?'ALL 9 BOXES COMPLETE':running?'FOCUS IN PROGRESS':'READY TO FOCUS';
+ $('play').disabled=s===TOTAL;
+ $('triangles').innerHTML=Array.from({length:4},(_,i)=>'<div class="triangle-card"><svg viewBox="0 0 120 105">'+[[60,10,12,94],[60,10,108,94],[12,94,108,94]].map((a,j)=>'<line class="'+(i*3+j<cycles?'on':'')+'" x1="'+a[0]+'" y1="'+a[1]+'" x2="'+a[2]+'" y2="'+a[3]+'"/>').join('')+'</svg><small>Triangle '+(i+1)+'</small></div>').join('');
+ $('grid').innerHTML=Array.from({length:9},(_,i)=>'<button class="box '+(i<Math.floor(s/6)?'done':'')+'" data-box="'+i+'"><span>30 MIN</span><small>BOX '+(i+1)+'</small></button>').join('');
+ document.querySelectorAll('[data-box]').forEach(b=>b.onclick=()=>{pause();let i=Number(b.dataset.box);day().steps=i<Math.floor(steps()/6)?i*6:(i+1)*6;secs=DURATION;save();draw()});
+}
+function earn(){if(steps()<TOTAL){day().steps=steps()+1;save()}secs=DURATION;if(steps()===TOTAL)pause();draw()}
+function tick(){if(!running)return;let remaining=Math.ceil((deadline-Date.now())/1000);if(remaining<=0){earn();if(running)deadline=Date.now()+DURATION*1000}else secs=remaining;draw()}
+$('play').onclick=()=>{if(running){tick();pause()}else if(steps()<TOTAL){running=true;deadline=Date.now()+secs*1000;$('play').textContent='Ⅱ Pause'}draw()};
+$('add').onclick=()=>{pause();earn()};
+$('resetTimer').onclick=()=>{pause();secs=DURATION;draw()};
+$('resetDay').onclick=()=>{if(confirm('Clear this day’s timer and all nine boxes?')){pause();day().steps=0;secs=DURATION;save();draw()}};
+$('date').onchange=e=>{pause();date=e.target.value||today();secs=DURATION;draw()};
+$('backup').onclick=()=>download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'dead-end-focus-backup.json');
+$('restore').onclick=()=>$('backupFile').click();
+$('backupFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(!x.days||typeof x.days!=='object')throw Error();pause();data=x;secs=DURATION;save();draw();alert('Backup restored')}catch(err){alert('Invalid backup')}e.target.value=''};
+function download(blob,name){let url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('image').onclick=()=>{
+ const c=document.createElement('canvas');c.width=1080;c.height=1570;let x=c.getContext('2d'),img=new Image();
+ function paint(){
+  x.fillStyle='#07151a';x.fillRect(0,0,1080,1570);
+  // GitHub Pages loads poster.jpg from the same domain, allowing PNG export.
+  try{if(img.complete&&img.naturalWidth&&location.protocol!=='file:'){let scale=Math.max(1080/img.width,1570/img.height);x.drawImage(img,(1080-img.width*scale)/2,(1570-img.height*scale)/2,img.width*scale,img.height*scale)}}catch(e){}
+  x.fillStyle='#00141bbb';x.fillRect(0,0,1080,1570);x.textAlign='center';
+  x.fillStyle='#ffe33e';x.font='bold 82px Arial';x.fillText('DEAD-END FOCUS',540,125);
+  x.fillStyle='white';x.font='30px Arial';x.fillText(date+'  •  EACH BOX = 30 MINUTES',540,192);
+  const s=steps(),done=Math.floor(s/6);x.font='bold 42px Arial';x.fillText(done+' / 9 BOXES  •  '+(s*5)+' / 270 MIN',540,285);
+  for(let i=0;i<9;i++){let col=i%3,row=Math.floor(i/3),px=60+col*330,py=365+row*330;
+   x.fillStyle='#08232cd9';x.fillRect(px,py,300,300);x.strokeStyle=i<done?'#ffe33e':'#86b6bd';x.lineWidth=4;x.strokeRect(px,py,300,300);
+   x.textAlign='center';x.fillStyle='#fff';x.font='bold 44px Arial';x.fillText('30 MIN',px+150,py+145);x.font='22px Arial';x.fillText('BOX '+(i+1),px+150,py+195);
+   if(i<done){x.strokeStyle='#ffe33e';x.lineWidth=12;x.beginPath();x.moveTo(px+28,py+28);x.lineTo(px+272,py+272);x.moveTo(px+272,py+28);x.lineTo(px+28,py+272);x.stroke()}
+  }
+  x.fillStyle='#fff';x.font='bold 29px Arial';x.fillText('ONE BLOCK AT A TIME',540,1460);
+  try{c.toBlob(b=>b?download(b,'dead-end-focus-'+date+'.png'):alert('Image export failed'),'image/png')}catch(e){alert('Image export blocked in this browser')}
+ }
+ img.onload=paint;img.onerror=paint;img.src='poster.jpg';
+};
+setInterval(tick,250);setInterval(updateClock,1000);updateClock();draw();
+</script>
+</body>
+</html>
